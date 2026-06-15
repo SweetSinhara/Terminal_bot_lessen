@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Your Own Terminal AI Bot | Run AI Free & Offline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #a855f7;
+    --accent2: #22d3ee;
+    --green: #4ade80;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --warn: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #0a0a0f 0%, #120d1f 50%, #0a0f1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 24px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 300px;
+    background: radial-gradient(ellipse, rgba(168,85,247,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-block;
+    background: rgba(168,85,247,0.15);
+    border: 1px solid rgba(168,85,247,0.4);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 560px;
+    margin: 0 auto 32px;
+  }
+
+  .win-bar {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .win-pill {
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.3);
+    color: var(--green);
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* STEP BLOCKS */
+  .step {
+    margin-top: 48px;
+    position: relative;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .step-num {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .step h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .step p, .step li {
+    color: #94a3b8;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .step ul {
+    padding-left: 20px;
+    margin: 8px 0 16px;
+  }
+
+  /* TERMINAL */
+  .terminal {
+    background: #050508;
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .terminal-bar {
+    background: #111118;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+
+  .terminal-label {
+    color: var(--muted);
+    font-size: 11px;
+    margin-left: 8px;
+    letter-spacing: 1px;
+  }
+
+  .terminal-body {
+    padding: 20px;
+    line-height: 1.8;
+  }
+
+  .terminal-body .prompt { color: var(--accent2); }
+  .terminal-body .cmd { color: #fff; }
+  .terminal-body .comment { color: var(--muted); }
+  .terminal-body .out { color: var(--green); }
+  .terminal-body .var { color: var(--accent); }
+  .terminal-body .str { color: var(--warn); }
+  .terminal-body .kw { color: #f472b6; }
+
+  /* CODE FILE */
+  .code-file {
+    background: #050508;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .code-file-header {
+    background: #111118;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .filename {
+    color: var(--accent2);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .lang-tag {
+    background: rgba(168,85,247,0.15);
+    color: var(--accent);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .code-body {
+    padding: 20px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+
+  /* CALLOUT */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(168,85,247,0.07);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 20px 0;
+  }
+
+  .callout.green {
+    border-left-color: var(--green);
+    background: rgba(74,222,128,0.07);
+  }
+
+  .callout.warn {
+    border-left-color: var(--warn);
+    background: rgba(245,158,11,0.07);
+  }
+
+  .callout strong {
+    display: block;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+
+  .callout.green strong { color: var(--green); }
+  .callout.warn strong { color: var(--warn); }
+  .callout p { margin: 0; color: #94a3b8; font-size: 14px; }
+
+  /* WIN BOX */
+  .win-box {
+    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(34,211,238,0.08));
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 48px;
+    text-align: center;
+  }
+
+  .win-box h3 {
+    font-size: 22px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+
+  .win-box p { color: #94a3b8; font-size: 15px; margin: 0; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">⚡ 10-Minute Win</div>
+  <h1>Build Your Own<br>Terminal AI Bot</h1>
+  <p>A real AI chatbot that runs in your command line. Free. No subscriptions. Yours to keep and sell.</p>
+  <div class="win-bar">
+    <span class="win-pill">✓ Free with Groq BYOK</span>
+    <span class="win-pill">✓ Works on Windows & Mac</span>
+    <span class="win-pill">✓ 100% yours</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- WHAT YOU'RE BUILDING -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">00</div>
+      <h2>What You're Building</h2>
+    </div>
+    <p>You're going to build a chatbot that lives in your terminal — no browser, no app, no monthly fee. You type to it, it answers back using Groq's free AI. When you're done you'll have a <code style="color:var(--accent2)">bot.py</code> file you can customize, sell, or teach others to build.</p>
+    <div class="callout warn">
+      <strong>What you need first</strong>
+      <p>A free Groq API key from <strong>console.groq.com</strong> → click API Keys → Create. Takes 2 minutes.</p>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">01</div>
+      <h2>Open Your Terminal</h2>
+    </div>
+    <p><strong>Windows:</strong> Press <code style="color:var(--accent2)">Win + R</code>, type <code style="color:var(--accent2)">cmd</code>, hit Enter.<br>
+    <strong>Mac:</strong> Press <code style="color:var(--accent2)">Cmd + Space</code>, type <code style="color:var(--accent2)">Terminal</code>, hit Enter.</p>
+    <p style="margin-top:12px;">Check that Python is installed — paste this and hit Enter:</p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="terminal-label">terminal</span>
+      </div>
+      <div class="terminal-body">
+        <span class="prompt">$ </span><span class="cmd">python --version</span><br>
+        <span class="out">Python 3.11.4</span>
+      </div>
+    </div>
+    <div class="callout warn">
+      <strong>Don't have Python?</strong>
+      <p>Go to <strong>python.org/downloads</strong> → Download → Install. Check the box that says "Add to PATH" during install.</p>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">02</div>
+      <h2>Install the Groq Library</h2>
+    </div>
+    <p>One command. Paste it in your terminal and hit Enter:</p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="terminal-label">terminal</span>
+      </div>
+      <div class="terminal-body">
+        <span class="prompt">$ </span><span class="cmd">pip install groq</span><br><br>
+        <span class="out">Successfully installed groq-0.x.x</span>
+      </div>
+    </div>
+    <p>That's the only install. Nothing else needed.</p>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">03</div>
+      <h2>Create Your Bot File</h2>
+    </div>
+    <p>Open Notepad (Windows) or TextEdit (Mac). Paste this entire block of code. Save it as <strong>bot.py</strong> on your Desktop.</p>
+
+    <div class="code-file">
+      <div class="code-file-header">
+        <span class="filename">bot.py</span>
+        <span class="lang-tag">Python</span>
+      </div>
+      <div class="code-body">
+<span class="kw">from</span> <span class="var">groq</span> <span class="kw">import</span> Groq<br><br>
+
+<span class="comment"># 👇 Paste your Groq API key here</span><br>
+<span class="var">client</span> = Groq(api_key=<span class="str">"YOUR_GROQ_API_KEY_HERE"</span>)<br><br>
+
+<span class="comment"># This is your bot's personality — change it to anything</span><br>
+<span class="var">SYSTEM_PROMPT</span> = <span class="str">"""You are a helpful AI assistant.
+You give short, clear answers. No fluff."""</span><br><br>
+
+<span class="var">messages</span> = [<br>
+&nbsp;&nbsp;{<span class="str">"role"</span>: <span class="str">"system"</span>, <span class="str">"content"</span>: <span class="var">SYSTEM_PROMPT</span>}<br>
+]<br><br>
+
+<span class="kw">print</span>(<span class="str">"\n🤖 Your AI Bot is ready. Type 'quit' to exit.\n"</span>)<br><br>
+
+<span class="kw">while</span> <span class="kw">True</span>:<br>
+&nbsp;&nbsp;<span class="var">user_input</span> = <span class="kw">input</span>(<span class="str">"You: "</span>)<br><br>
+
+&nbsp;&nbsp;<span class="kw">if</span> <span class="var">user_input</span>.lower() <span class="kw">in</span> [<span class="str">"quit"</span>, <span class="str">"exit"</span>, <span class="str">"bye"</span>]:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">print</span>(<span class="str">"Bot: Later! 👋"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">break</span><br><br>
+
+&nbsp;&nbsp;<span class="var">messages</span>.append({<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="var">user_input</span>})<br><br>
+
+&nbsp;&nbsp;<span class="var">response</span> = <span class="var">client</span>.chat.completions.create(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;model=<span class="str">"llama-3.3-70b-versatile"</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;messages=<span class="var">messages</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_tokens=<span class="var">500</span><br>
+&nbsp;&nbsp;)<br><br>
+
+&nbsp;&nbsp;<span class="var">reply</span> = <span class="var">response</span>.choices[<span class="var">0</span>].message.content<br>
+&nbsp;&nbsp;<span class="var">messages</span>.append({<span class="str">"role"</span>: <span class="str">"assistant"</span>, <span class="str">"content"</span>: <span class="var">reply</span>})<br><br>
+
+&nbsp;&nbsp;<span class="kw">print</span>(<span class="str">f"\nBot: </span><span class="var">{reply}</span><span class="str">\n"</span>)
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Replace this</strong>
+      <p>Find <code>YOUR_GROQ_API_KEY_HERE</code> and swap it with your actual key from console.groq.com. Keep the quotes around it.</p>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">04</div>
+      <h2>Run Your Bot</h2>
+    </div>
+    <p>In your terminal, navigate to your Desktop and run it:</p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <span class="terminal-label">terminal</span>
+      </div>
+      <div class="terminal-body">
+        <span class="comment"># Windows</span><br>
+        <span class="prompt">$ </span><span class="cmd">cd Desktop && python bot.py</span><br><br>
+        <span class="comment"># Mac</span><br>
+        <span class="prompt">$ </span><span class="cmd">cd ~/Desktop && python3 bot.py</span><br><br>
+        <span class="out">🤖 Your AI Bot is ready. Type 'quit' to exit.</span><br><br>
+        <span class="prompt">You: </span><span class="cmd">what can you do?</span><br><br>
+        <span class="out">Bot: I can answer questions, help you write, brainstorm ideas,
+explain things clearly, and more. What do you need?</span>
+      </div>
+    </div>
+    <div class="callout green">
+      <strong>It's working!</strong>
+      <p>Your bot remembers the whole conversation — every message you send builds on the last one, just like ChatGPT.</p>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">05</div>
+      <h2>Make It Yours — Customize the Personality</h2>
+    </div>
+    <p>Change the <code style="color:var(--accent2)">SYSTEM_PROMPT</code> to give your bot a specific job. Here are three you can swap in right now:</p>
+
+    <div class="code-file">
+      <div class="code-file-header">
+        <span class="filename">ADHD Productivity Bot</span>
+        <span class="lang-tag">swap in</span>
+      </div>
+      <div class="code-body">
+<span class="var">SYSTEM_PROMPT</span> = <span class="str">"""You are an ADHD productivity coach.
+Keep answers under 3 bullet points.
+No long paragraphs. Be direct and energetic.
+Help the user take action RIGHT NOW."""</span>
+      </div>
+    </div>
+
+    <div class="code-file">
+      <div class="code-file-header">
+        <span class="filename">Content Ideas Bot</span>
+        <span class="lang-tag">swap in</span>
+      </div>
+      <div class="code-body">
+<span class="var">SYSTEM_PROMPT</span> = <span class="str">"""You are a social media content strategist.
+When asked for ideas, always give exactly 5 options.
+Keep each idea to one sentence.
+Focus on TikTok, YouTube Shorts, and Instagram Reels."""</span>
+      </div>
+    </div>
+
+    <div class="code-file">
+      <div class="code-file-header">
+        <span class="filename">Sales Copy Bot</span>
+        <span class="lang-tag">swap in</span>
+      </div>
+      <div class="code-body">
+<span class="var">SYSTEM_PROMPT</span> = <span class="str">"""You are a direct response copywriter.
+Write punchy, high-converting copy.
+Always use short sentences. Never use fluff words.
+Lead with the pain point, then the solution."""</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- HOW TO SELL THIS -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">06</div>
+      <h2>How to Sell This</h2>
+    </div>
+    <p>You just built something people pay for. Here's how to flip it:</p>
+    <ul>
+      <li><strong>Custom Niche Bot — $27–$97:</strong> Change the system prompt for a specific niche (real estate, fitness, Etsy sellers) and sell it as a done-for-you bot on Gumroad.</li>
+      <li><strong>Bot Setup Service — $150+:</strong> Offer to install and configure it on a client's computer. Charge for your time, not the code.</li>
+      <li><strong>Bundle with Your Course:</strong> Offer this as a bonus inside your community or as a paid add-on.</li>
+    </ul>
+    <div class="callout">
+      <strong>Remember</strong>
+      <p>The code is free. You sell the setup, the customization, and your time. That's the business model.</p>
+    </div>
+  </div>
+
+  <!-- WIN BOX -->
+  <div class="win-box">
+    <h3>🎉 10-Minute Win Complete</h3>
+    <p>You built a working AI chatbot that runs 100% free from your terminal.<br>You can customize it, sell it, and teach others to build it.</p>
+  </div>
+
+  <hr class="divider">
+
+</div>
+</body>
+</html>
